@@ -1,0 +1,254 @@
+docker run --name mymongo -p 27017:27017 -d mongo:latest
+
+#Mostrar base de datos 
+show dbs;
+
+#Crear y usar base de datos
+use flaskmongodb;
+
+#Mostrar collections
+show collections;
+
+#Crear collections
+
+db.createCollection("nombre-de-la-collection")
+ej:
+db.createCollection("miColeccion")
+
+#Insertar en collections
+
+// Insertar un solo documento en la colección
+db.miColeccion.insertOne({
+  campo1: valor1,
+  campo2: valor2,
+  // ...
+});
+
+
+
+// Insertar varios documentos en la colección
+db.miColeccion.insertMany([
+  {
+    campo1: valor1,
+    campo2: valor2,
+    // ...
+  },
+  {
+    campo1: valor3,
+    campo2: valor4,
+    // ...
+  },
+  // ...
+]);
+
+#Visualizar collection
+ // Obtener todos los documentos de la colección en formato legible
+db.miColeccion.find().pretty();
+
+#Actualizar 
+
+db.miColeccion.updateOne(
+  { _id: ObjectId("64a483e469d81f03c93e1b0e") }, // Criterio de filtrado
+  { $set: { campos: nuevoValor, otro: nuevoValor2 } } // Nuevos valores a asignar
+);
+
+db.collection.updateMany({}, { $set: { nuevoCampo: "valorNuevo" } });
+
+#Borrar 
+
+db.miColeccion.deleteOne({ _id: ObjectId("64a483e469d81f03c93e1b0e") });
+
+db.miColeccion.deleteMany({ _id: ObjectId("64a483e469d81f03c93e1b0e") });
+
+#filtros
+Igualdad: Buscar documentos donde el valor de un campo sea igual a un valor específico.
+
+db.miColeccion.find({ campo: valor });
+
+Operadores de comparación: Utilizar operadores como $gt (mayor que), $lt (menor que), $gte (mayor o igual que), $lte (menor o igual que) para comparar valores de campos.
+db.miColeccion.find({ campo: { $gt: valor } });
+
+Operador $in: Buscar documentos donde el valor de un campo esté dentro de un conjunto de valores.
+db.miColeccion.find({ campo: { $in: [valor1, valor2, valor3] } });
+
+Operador $and: Combinar múltiples condiciones utilizando la lógica AND.
+db.miColeccion.find({ $and: [ { campo1: valor1 }, { campo2: valor2 } ] });
+
+Operador $or: Combinar múltiples condiciones utilizando la lógica OR.
+db.miColeccion.find({ $or: [ { campo1: valor1 }, { campo2: valor2 } ] });
+
+BETWEEN: Para simular una consulta "BETWEEN" en MongoDB, puedes combinar operadores de comparación $gte (mayor o igual que) y $lte (menor o igual que). Por ejemplo, para buscar documentos con un campo valor entre 10 y 20:
+db.miColeccion.find({ valor: { $gte: 10, $lte: 20 } });
+
+LIKE: Para realizar búsquedas similares a "LIKE" en MongoDB, puedes utilizar expresiones regulares (regex). Por ejemplo, para buscar documentos donde el campo nombre comience con "abc":
+db.miColeccion.find({ nombre: /^abc/ });
+
+ORDER BY: Para ordenar los resultados en MongoDB, puedes utilizar el método sort(). Por ejemplo, para ordenar los documentos de la colección miColeccion por el campo valor de forma ascendente:
+db.miColeccion.find().sort({ valor: 1 });
+
+ORDER BY DESC: Para ordenar de forma descendente, utiliza -1 en lugar de 1:
+db.miColeccion.find().sort({ valor: -1 });
+
+COUNT: Para contar el número de documentos en una colección, puedes utilizar el método count():
+db.miColeccion.count();
+
+SUM, AVERAGE, MIN, MAX: Para realizar operaciones de agregación como suma, promedio, mínimo y máximo, puedes utilizar la agregación de MongoDB. Aquí tienes un ejemplo de cómo calcular la suma del campo valor en la colección miColeccion:
+db.miColeccion.aggregate([
+  { $group: { _id: null, total: { $sum: "$valor" } } }
+]);
+Puedes adaptar este ejemplo para calcular el promedio, mínimo y máximo cambiando el operador $sum por $avg, $min y $max, respectivamente.
+
+GROUP BY: Para agrupar documentos en base a un campo y realizar operaciones de agregación, utiliza la agregación de MongoDB con el operador $group. Por ejemplo, para calcular la suma del campo valor agrupado por el campo categoria en la colección miColeccion:
+db.miColeccion.aggregate([
+  { $group: { _id: "$categoria", total: { $sum: "$valor" } } }
+]);
+
+CASE: En MongoDB, puedes utilizar la expresión condicional $cond dentro de la agregación para realizar una lógica similar a un CASE en SQL. Aquí tienes un ejemplo de cómo utilizarlo para asignar una etiqueta a los documentos basada en el valor del campo valor:
+
+db.miColeccion.aggregate([
+  {
+    $project: {
+      etiqueta: {
+        $cond: {
+          if: { $gte: ["$valor", 10] },
+          then: "Alto",
+          else: "Bajo"
+        }
+      }
+    }
+  }
+]);
+
+
+
+#####
+INNER JOIN:
+
+SQL:
+sql
+Copy code
+SELECT orders.orderId, customers.customerName
+FROM orders
+INNER JOIN customers ON orders.customerId = customers.customerId;
+MongoDB:
+
+db.orders.aggregate([
+  {
+    $lookup: {
+      from: "customers",
+      localField: "customerId",
+      foreignField: "customerId",
+      as: "customer"
+    }
+  },
+  {
+    $unwind: "$customer"
+  },
+  {
+    $project: {
+      orderId: 1,
+      customerName: "$customer.customerName"
+    }
+  }
+]);
+LEFT JOIN:
+
+SQL:
+
+SELECT customers.customerName, orders.orderId
+FROM customers
+LEFT JOIN orders ON customers.customerId = orders.customerId;
+MongoDB:
+
+db.customers.aggregate([
+  {
+    $lookup: {
+      from: "orders",
+      localField: "customerId",
+      foreignField: "customerId",
+      as: "orders"
+    }
+  },
+  {
+    $project: {
+      customerName: 1,
+      orderId: { $ifNull: [{ $arrayElemAt: ["$orders.orderId", 0] }, null] }
+    }
+  }
+]);
+RIGHT JOIN:
+
+SQL:
+
+SELECT customers.customerName, orders.orderId
+FROM customers
+RIGHT JOIN orders ON customers.customerId = orders.customerId;
+MongoDB:
+
+db.orders.aggregate([
+  {
+    $lookup: {
+      from: "customers",
+      localField: "customerId",
+      foreignField: "customerId",
+      as: "customer"
+    }
+  },
+  {
+    $unwind: { path: "$customer", preserveNullAndEmptyArrays: true }
+  },
+  {
+    $project: {
+      customerName: "$customer.customerName",
+      orderId: 1
+    }
+  }
+]);
+UNION:
+
+MongoDB no tiene una operación UNION. Puedes realizar consultas separadas y combinar los resultados en tu aplicación.
+LENGTH:
+
+SQL:
+
+SELECT LENGTH(column) AS length
+FROM table;
+MongoDB:
+
+db.collection.aggregate([
+  {
+    $project: {
+      length: { $strLenCP: "$column" }
+    }
+  }
+]);
+UPPER, LOWER, REPLACE:
+
+SQL:
+
+
+SELECT UPPER(column) AS upper, LOWER(column) AS lower, REPLACE(column, 'old', 'new') AS replaced
+FROM table;
+MongoDB:
+
+db.collection.aggregate([
+  {
+    $project: {
+      upper: { $toUpper: "$column" },
+      lower: { $toLower: "$column" },
+      replaced: { $replaceOne: { input: "$column", find: "old", replacement: "new" } }
+    }
+  }
+]);
+VIEWS:
+
+MongoDB no tiene vistas permanentes como en SQL. Sin embargo, puedes crear vistas materializadas utilizando la funcionalidad de agregación. Aquí hay un ejemplo básico:
+
+db.createView(
+  "myView",
+  "myCollection",
+  [
+    { $group: { _id: "$field", count: { $sum: 1 } } },
+    { $sort: { count: -1 } }
+  ]
+);
